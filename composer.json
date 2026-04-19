@@ -1,0 +1,50 @@
+{
+    "name": "signvault/laravel-sdk",
+    "description": "Official Laravel package for the SignVault e-signature API",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["signvault", "e-signature", "esign", "laravel", "pdf", "signing"],
+    "homepage": "https://github.com/signvault/signvault-sdk-laravel",
+    "authors": [
+        {
+            "name": "SignVault",
+            "email": "dev@signvault.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
+        "signvault/signvault-php": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5 || ^11.0",
+        "orchestra/testbench": "^8.0|^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SignVault\\Laravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SignVault\\Laravel\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["SignVault\\Laravel\\SignVaultServiceProvider"],
+            "aliases": {
+                "SignVault": "SignVault\\Laravel\\Facades\\SignVault"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:integration": "phpunit --testsuite Integration"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}
