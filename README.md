@@ -1,9 +1,17 @@
 # SignVault Laravel SDK
 
-Official Laravel package for the [SignVault](https://signvault.com) e-signature API.
+Official Laravel integration for the [SignVault](https://signvault.com) e-signature API.  
+Wraps [`signvault/signvault-php`](https://github.com/signvault/signvault-sdk-php) with a service provider, Facade, webhook controller, and signature middleware.
 
-**Requirements:** Laravel 10+ · PHP 8.1+  
-**Dependencies:** Uses Laravel's built-in `Http` facade — no extra Guzzle config needed
+---
+
+## Requirements
+
+| | Minimum |
+|---|---|
+| PHP | 8.1 |
+| Laravel | 10 or 11 |
+| signvault/signvault-php | ^1.0 |
 
 ---
 
@@ -13,220 +21,179 @@ Official Laravel package for the [SignVault](https://signvault.com) e-signature 
 composer require signvault/laravel-sdk
 ```
 
-The service provider is auto-discovered via Laravel's package discovery — no manual registration needed.
+Laravel's package auto-discovery registers the service provider and `SignVault` alias automatically.
 
-Publish the config file (optional):
+Publish the config file:
 
 ```bash
 php artisan vendor:publish --tag=signvault-config
 ```
 
----
+Add your credentials to `.env`:
 
-## Configuration
-
-Add to your `.env`:
-
-```bash
-SIGNVAULT_API_KEY=sv_live_your_api_key
-SIGNVAULT_BASE_URL=https://api.signvault.com   # optional
-SIGNVAULT_WEBHOOK_SECRET=whsec_...             # optional, for webhook verification
-```
-
-Config file `config/signvault.php` (after publishing):
-
-```php
-return [
-    'api_key'        => env('SIGNVAULT_API_KEY'),
-    'base_url'       => env('SIGNVAULT_BASE_URL', 'https://api.signvault.com'),
-    'timeout'        => 30,
-    'max_retries'    => 1,
-    'webhook_secret' => env('SIGNVAULT_WEBHOOK_SECRET'),
-];
+```env
+SIGNVAULT_API_KEY=sv_live_your_key_here
+SIGNVAULT_WEBHOOK_SECRET=your_webhook_secret_here
 ```
 
 ---
 
-## Quick start
-
-### Via facade
-
-```php
-use SignVault\Laravel\Facades\SignVault;
-
-// Upload a PDF
-$doc = SignVault::documents()->upload(storage_path('app/contract.pdf'), 'Master Services Agreement');
-
-// Add signers and send
-SignVault::documents()->send($doc->id, [
-    ['email' => 'alice@example.com', 'full_name' => 'Alice Smith'],
-]);
-```
+## Usage
 
 ### Via dependency injection
 
 ```php
-use SignVault\Laravel\SignVaultClient;
+use SignVault\SignVault;
 
-class ContractController extends Controller
+class ContractService
 {
-    public function __construct(private SignVaultClient $sv) {}
+    public function __construct(private readonly SignVault $signVault) {}
 
-    public function send(Request $request): JsonResponse
+    public function sendForSigning(string $path, string $title, array $signers): string
     {
-        $doc = $this->sv->documents()->upload(
-            $request->file('pdf')->getRealPath(),
-            $request->input('title'),
-        );
-
-        return response()->json(['document_id' => $doc->id]);
+        $doc = $this->signVault->documents->upload($path, $title);
+        $this->signVault->documents->send($doc->id, $signers);
+        return $doc->id;
     }
 }
 ```
 
----
-
-## Documents
-
-### Upload
+### Via Facade
 
 ```php
-// From a file path
-$doc = SignVault::documents()->upload('/path/to/file.pdf', 'NDA');
+use SignVault\Laravel\Facades\SignVault;
 
-// From an UploadedFile (form upload)
-$doc = SignVault::documents()->upload(
-    $request->file('pdf')->getRealPath(),
-    $request->input('title'),
-    'contract',
+$client = SignVault::getFacadeRoot();   // returns the bound \SignVault\SignVault instance
+
+$doc = $client->documents->upload(storage_path('app/contract.pdf'), 'NDA');
+
+$client->documents->send($doc->id, [
+    ['email' => 'alice@example.com', 'full_name' => 'Alice Smith', 'role' => 'signer'],
+]);
+```
+
+### Documents
+
+```php
+// Upload
+$doc = $signVault->documents->upload('/path/to/file.pdf', 'Contract', 'contract');
+
+// List with filters
+$page = $signVault->documents->list(['status' => 'pending', 'limit' => 25]);
+foreach ($page->items as $doc) {
+    echo "{$doc->id} {$doc->title} {$doc->status}\n";
+}
+
+// Get single
+$doc = $signVault->documents->get('doc_abc123');
+
+// Send for signing
+$signVault->documents->send($doc->id, [
+    ['email' => 'alice@example.com', 'full_name' => 'Alice Smith', 'role' => 'signer'],
+    ['email' => 'bob@example.com',   'full_name' => 'Bob Jones',   'role' => 'approver'],
+], message: 'Please review and sign.', expiryDays: 14);
+
+// Download signed PDF
+$bytes = $signVault->documents->downloadSigned($doc->id);
+
+// Void
+$signVault->documents->void($doc->id, 'Sent to wrong recipient');
+
+// Audit trail
+$audit = $signVault->documents->auditTrail($doc->id);
+```
+
+### Templates
+
+```php
+$doc = $signVault->templates->createDocument(
+    templateId: 'tpl_abc123',
+    fieldValues: ['party_name' => 'Acme Corp', 'effective_date' => '2026-01-01'],
+    signers: [['email' => 'ceo@acme.com', 'full_name' => 'Jane CEO']],
 );
 ```
 
-### List
+### API Keys & Webhooks
 
 ```php
-$page = SignVault::documents()->list([
-    'status'        => 'completed',
-    'document_type' => 'contract',
-    'search'        => 'Acme',
-    'limit'         => 20,
-]);
+// API Keys
+$key  = $signVault->apiKeys->create('CI deploy key');
+$page = $signVault->apiKeys->list();
+$signVault->apiKeys->delete($key->id);
 
-foreach ($page->items as $doc) {
-    echo "{$doc->id}  {$doc->title}  {$doc->status}\n";
-}
-
-if ($page->hasMore()) {
-    $next = SignVault::documents()->list(['cursor' => $page->nextCursor]);
-}
-```
-
-### Send for signing
-
-```php
-$doc = SignVault::documents()->send($doc->id, [
-    'signers' => [
-        [
-            'email'         => 'alice@example.com',
-            'full_name'     => 'Alice Smith',
-            'role'          => 'signer',
-            'auth_method'   => 'email',
-            'signing_order' => 1,
-        ],
-    ],
-    'message'        => 'Please review and sign.',
-    'expiry_days'    => 14,
-    'send_reminders' => true,
-]);
-```
-
-### Void
-
-```php
-SignVault::documents()->void($doc->id, 'Sent to wrong recipient');
-```
-
-### Download
-
-```php
-$bytes = SignVault::documents()->downloadSigned($doc->id);
-return response($bytes, 200, [
-    'Content-Type'        => 'application/pdf',
-    'Content-Disposition' => 'attachment; filename="signed.pdf"',
-]);
+// Webhooks
+$hook = $signVault->webhooks->create('https://example.com/hooks/sv', ['document.completed']);
+$signVault->webhooks->update($hook->id, ['is_active' => false]);
+$signVault->webhooks->delete($hook->id);
 ```
 
 ---
 
 ## Webhooks
 
-### Drop-in controller
+### Option A — Drop-in controller
 
-Register the provided controller in `routes/web.php`:
+Register a route and exclude it from CSRF:
 
 ```php
-use SignVault\Laravel\Http\Controllers\SignVaultWebhookController;
-
-Route::post('/webhooks/signvault', SignVaultWebhookController::class);
+// routes/api.php (already CSRF-exempt) or routes/web.php
+Route::post('/webhooks/signvault', \SignVault\Laravel\Http\Controllers\WebhookController::class);
 ```
 
-Then listen for events in your `EventServiceProvider`:
+If using `routes/web.php`, add the path to `VerifyCsrfToken::$except`.
+
+The controller:
+1. Verifies the HMAC-SHA256 signature against `SIGNVAULT_WEBHOOK_SECRET` (skips if secret is empty).
+2. Fires `SignVault\Laravel\Events\WebhookReceived` on success.
+
+Listen for the event:
 
 ```php
-use SignVault\Laravel\Events\DocumentCompleted;
-use SignVault\Laravel\Events\DocumentDeclined;
-use App\Listeners\HandleSignedContract;
+// EventServiceProvider
+use SignVault\Laravel\Events\WebhookReceived;
 
 protected $listen = [
-    DocumentCompleted::class => [HandleSignedContract::class],
-    DocumentDeclined::class  => [/* ... */],
+    WebhookReceived::class => [
+        App\Listeners\HandleSignVaultWebhook::class,
+    ],
 ];
 ```
 
-Available events: `DocumentCompleted`, `DocumentDeclined`, `DocumentVoided`, `SignerSigned`, `SignerDeclined`.
+```php
+// App\Listeners\HandleSignVaultWebhook
+public function handle(WebhookReceived $event): void
+{
+    match ($event->event) {
+        'document.completed' => $this->onCompleted($event->data),
+        'signer.signed'      => $this->onSigned($event->data),
+        default              => null,
+    };
+}
+```
+
+### Option B — Middleware on your own handler
+
+```php
+Route::post('/webhooks/signvault', MyWebhookHandler::class)
+    ->middleware(\SignVault\Laravel\Http\Middleware\VerifyWebhookSignature::class)
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+```
 
 ### Manual verification
 
 ```php
-use SignVault\Laravel\Facades\SignVault;
+use SignVault\Resources\Webhooks;
 
 $payload   = $request->getContent();
-$signature = $request->header('X-SignVault-Signature');
+$signature = $request->header('X-SignVault-Signature', '');
 
-if (! SignVault::webhooks()->verifySignature($payload, $signature)) {
+if (! Webhooks::verify($payload, $signature, config('signvault.webhook_secret'))) {
     abort(403);
 }
 
-$event = SignVault::webhooks()->constructEvent($payload);
-```
-
----
-
-## Queued signing jobs
-
-Use a Laravel Job to avoid blocking web requests:
-
-```php
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use SignVault\Laravel\Facades\SignVault;
-
-class SendDocumentForSigning implements ShouldQueue
-{
-    use Queueable;
-
-    public function __construct(
-        private string $filePath,
-        private string $title,
-        private array  $signers,
-    ) {}
-
-    public function handle(): void
-    {
-        $doc = SignVault::documents()->upload($this->filePath, $this->title);
-        SignVault::documents()->send($doc->id, ['signers' => $this->signers]);
-    }
-}
+$event = Webhooks::constructEvent($payload);
+// $event['event'] — e.g. "document.completed"
+// $event['data']  — decoded payload
 ```
 
 ---
@@ -241,63 +208,49 @@ use SignVault\Exceptions\RateLimitException;
 use SignVault\Exceptions\ApiException;
 
 try {
-    $doc = SignVault::documents()->get('doc_xyz');
+    $doc = $signVault->documents->get('doc_xyz');
 } catch (NotFoundException $e) {
-    return response()->json(['error' => 'Not found', 'request_id' => $e->requestId], 404);
+    abort(404, $e->getMessage());
 } catch (AuthException) {
-    return response()->json(['error' => 'Invalid API key'], 401);
+    abort(401, 'Invalid API key.');
 } catch (ValidationException $e) {
-    return response()->json(['error' => $e->getMessage()], 422);
+    abort(422, $e->getMessage());
 } catch (RateLimitException) {
-    return response()->json(['error' => 'Rate limited'], 429);
+    abort(429, 'Rate limited — try again shortly.');
 } catch (ApiException $e) {
-    return response()->json(['error' => $e->getMessage()], 500);
+    // $e->requestId is available for support tickets
+    abort(500, $e->getMessage());
 }
 ```
+
+---
+
+## Configuration reference
+
+| Key | Env var | Default | Description |
+|---|---|---|---|
+| `api_key` | `SIGNVAULT_API_KEY` | — | Bearer token (required) |
+| `base_url` | `SIGNVAULT_BASE_URL` | `https://api.signvault.com` | Override for staging |
+| `timeout` | `SIGNVAULT_TIMEOUT` | `30` | Request timeout in seconds |
+| `max_retries` | `SIGNVAULT_MAX_RETRIES` | `1` | Retries on 429 / 5xx |
+| `webhook_secret` | `SIGNVAULT_WEBHOOK_SECRET` | — | Webhook signing secret |
 
 ---
 
 ## Testing
 
-The SDK exposes a `SignVault::fake()` helper that uses `Http::fake()` under the hood:
+```bash
+composer test           # All tests (unit)
+composer test:integration  # Integration (requires real SIGNVAULT_API_KEY)
+```
+
+In your own test suite, bind a mock before resolution:
 
 ```php
-use SignVault\Laravel\Facades\SignVault;
-
-public function test_sends_document_for_signing(): void
-{
-    SignVault::fake([
-        'documents.upload' => ['id' => 'doc_test', 'title' => 'NDA', 'status' => 'draft'],
-        'documents.send'   => ['id' => 'doc_test', 'status' => 'pending'],
-    ]);
-
-    $this->post('/contracts', ['title' => 'NDA', 'pdf' => UploadedFile::fake()->create('contract.pdf')]);
-
-    SignVault::assertDocumentSent('doc_test');
-}
+$this->app->instance(\SignVault\SignVault::class, $mockClient);
 ```
 
----
-
-## Artisan commands
-
-```bash
-# List recent documents
-php artisan signvault:documents:list --status=pending
-
-# Sync webhook endpoints
-php artisan signvault:webhooks:sync
-```
-
----
-
-## Running tests
-
-```bash
-composer install
-composer test          # Unit tests (Http::fake, no real API calls)
-SIGNVAULT_API_KEY=sv_live_... composer test:integration
-```
+Or use `orchestra/testbench` with `SignVaultServiceProvider` and override config in `defineEnvironment`.
 
 ---
 
@@ -309,4 +262,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT.
