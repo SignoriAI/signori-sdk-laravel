@@ -37,6 +37,8 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mbstring, json, openssl
           coverage: none
+          ssh_key: ${{ secrets.ssh_key }}
+          ssh_key_pub: ${{ secrets.ssh_key_pub }}
 
       - name: Require matching Laravel and Testbench versions
         run: |
