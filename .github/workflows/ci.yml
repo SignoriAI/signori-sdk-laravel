@@ -30,8 +30,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.ssh_key }}
 
       - name: Set up PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -49,7 +47,10 @@ jobs:
             --no-update
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        uses: php-actions/composer@v6
+        with:
+          ssh_key: ${{ secrets.ssh_key }}
+          ssh_key_pub: ${{ secrets.ssh_key_pub }}
 
       - name: Run tests
         run: vendor/bin/phpunit
