@@ -26,7 +26,14 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php }}
+          ssh_key: ${{ secrets.ssh_key }}
+          ssh_key_pub: ${{ secrets.ssh_key_pub }}
+
+      - name: Fix permissions for vendor directory
+        run: sudo chown -R $USER:$USER $GITHUB_WORKSPACE/vendor
 
       - name: Run tests
         run: vendor/bin/phpunit
