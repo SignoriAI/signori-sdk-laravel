@@ -53,8 +53,8 @@ jobs:
           ssh_key: ${{ secrets.ssh_key }}
           ssh_key_pub: ${{ secrets.ssh_key_pub }}
 
-      - name: Prepare testbench cache directory
-        run: mkdir -p vendor/orchestra/testbench-core/laravel/bootstrap/cache
+      - name: Fix permissions for vendor directory
+        run: sudo chown -R $USER:$USER $GITHUB_WORKSPACE/vendor
 
       - name: Run tests
         run: vendor/bin/phpunit
