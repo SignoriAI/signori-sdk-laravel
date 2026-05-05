@@ -44,8 +44,18 @@ class WebhookController extends Controller
             return response('Invalid payload', 400);
         }
 
+        // SignVault puts the event type in the ``X-SignVault-Event`` header
+        // (the JSON body holds only the event data, not a wrapping
+        // ``{"event": ...}`` envelope). Honour the header when present;
+        // fall back to whatever ``constructEvent`` extracted from the body
+        // so an envelope-style sender keeps working too.
+        $eventType = (string) $request->header('X-SignVault-Event', '');
+        if ($eventType === '') {
+            $eventType = $event['event'];
+        }
+
         // Fire a Laravel event so application listeners can react.
-        event(new WebhookReceived($event['event'], $event['data'], $request));
+        event(new WebhookReceived($eventType, $event['data'], $request));
 
         return response('OK', 200);
     }
