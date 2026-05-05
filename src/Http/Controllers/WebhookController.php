@@ -27,7 +27,11 @@ class WebhookController extends Controller
     {
         $payload   = $request->getContent();
         $signature = $request->header('X-SignVault-Signature', '');
-        $secret    = config('signvault.webhook_secret', '');
+
+        // Coerce nulls to '' so an unset/empty SIGNVAULT_WEBHOOK_SECRET is
+        // treated as "no secret configured — skip verification" rather than
+        // type-erroring against Webhooks::verify()'s string $secret param.
+        $secret = (string) (config('signvault.webhook_secret') ?? '');
 
         // Verify signature when a secret is configured.
         if ($secret !== '' && ! Webhooks::verify($payload, $signature, $secret)) {
