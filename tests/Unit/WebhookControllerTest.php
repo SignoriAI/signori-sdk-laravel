@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace SignVault\Laravel\Tests\Unit;
+namespace Signori\Laravel\Tests\Unit;
 
 use Illuminate\Support\Facades\Event;
-use SignVault\Laravel\Events\WebhookReceived;
-use SignVault\Laravel\Http\Controllers\WebhookController;
-use SignVault\Laravel\Tests\TestCase;
+use Signori\Laravel\Events\WebhookReceived;
+use Signori\Laravel\Http\Controllers\WebhookController;
+use Signori\Laravel\Tests\TestCase;
 
 class WebhookControllerTest extends TestCase
 {
@@ -31,7 +31,7 @@ class WebhookControllerTest extends TestCase
         return $this->withoutMiddleware()
             ->post('/test-webhook', [], [
                 'Content-Type'           => 'application/json',
-                'X-SignVault-Signature'  => $signature,
+                'X-Signori-Signature'  => $signature,
                 'CONTENT'               => $payload,
             ]);
     }
@@ -52,7 +52,7 @@ class WebhookControllerTest extends TestCase
         $this->app['router']->post('/test-webhook', WebhookController::class);
 
         $response = $this->call('POST', '/test-webhook', [], [], [], [
-            'HTTP_X_SIGNVAULT_SIGNATURE' => $signature,
+            'HTTP_X_SIGNORI_SIGNATURE' => $signature,
             'CONTENT_TYPE'               => 'application/json',
         ], $payload);
 
@@ -71,7 +71,7 @@ class WebhookControllerTest extends TestCase
         $this->app['router']->post('/test-webhook', WebhookController::class);
 
         $response = $this->call('POST', '/test-webhook', [], [], [], [
-            'HTTP_X_SIGNVAULT_SIGNATURE' => 'sha256=badsignature',
+            'HTTP_X_SIGNORI_SIGNATURE' => 'sha256=badsignature',
             'CONTENT_TYPE'               => 'application/json',
         ], $payload);
 
@@ -86,7 +86,7 @@ class WebhookControllerTest extends TestCase
         $this->app['router']->post('/test-webhook', WebhookController::class);
 
         $response = $this->call('POST', '/test-webhook', [], [], [], [
-            'HTTP_X_SIGNVAULT_SIGNATURE' => $signature,
+            'HTTP_X_SIGNORI_SIGNATURE' => $signature,
             'CONTENT_TYPE'               => 'application/json',
         ], $payload);
 
@@ -97,14 +97,14 @@ class WebhookControllerTest extends TestCase
     {
         Event::fake([WebhookReceived::class]);
 
-        $this->app['config']->set('signvault.webhook_secret', '');
+        $this->app['config']->set('signori.webhook_secret', '');
 
         $payload = $this->makePayload();
 
         $this->app['router']->post('/test-webhook', WebhookController::class);
 
         $response = $this->call('POST', '/test-webhook', [], [], [], [
-            'HTTP_X_SIGNVAULT_SIGNATURE' => '',
+            'HTTP_X_SIGNORI_SIGNATURE' => '',
             'CONTENT_TYPE'               => 'application/json',
         ], $payload);
 

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace SignVault\Laravel;
+namespace Signori\Laravel;
 
 use Illuminate\Support\ServiceProvider;
-use SignVault\SignVault;
+use Signori\Signori;
 
-class SignVaultServiceProvider extends ServiceProvider
+class SignoriServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__ . '/../config/signvault.php', 'signvault');
+        $this->mergeConfigFrom(__DIR__ . '/../config/signori.php', 'signori');
 
-        $this->app->singleton(SignVault::class, function ($app) {
-            $config = $app['config']['signvault'];
+        $this->app->singleton(Signori::class, function ($app) {
+            $config = $app['config']['signori'];
 
-            return SignVault::client(
+            return Signori::client(
                 apiKey:     $config['api_key'] ?? null,
                 baseUrl:    $config['base_url'] ?? null,
                 timeout:    (int) ($config['timeout'] ?? 30),
@@ -24,15 +24,15 @@ class SignVaultServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->alias(SignVault::class, 'signvault');
+        $this->app->alias(Signori::class, 'signori');
     }
 
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/signvault.php' => config_path('signvault.php'),
-            ], 'signvault-config');
+                __DIR__ . '/../config/signori.php' => config_path('signori.php'),
+            ], 'signori-config');
         }
     }
 }

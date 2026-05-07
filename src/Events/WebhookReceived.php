@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SignVault\Laravel\Events;
+namespace Signori\Laravel\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Http\Request;
@@ -23,7 +23,7 @@ class WebhookReceived
     use Dispatchable;
 
     public function __construct(
-        /** The SignVault event type, e.g. "document.completed". */
+        /** The Signori event type, e.g. "document.completed". */
         public readonly string $event,
 
         /** The decoded event payload. */

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace SignVault\Laravel\Facades;
+namespace Signori\Laravel\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use SignVault\Resources\ApiKeys;
-use SignVault\Resources\Documents;
-use SignVault\Resources\Signers;
-use SignVault\Resources\Templates;
-use SignVault\Resources\Webhooks;
+use Signori\Resources\ApiKeys;
+use Signori\Resources\Documents;
+use Signori\Resources\Signers;
+use Signori\Resources\Templates;
+use Signori\Resources\Webhooks;
 
 /**
  * @method static Documents  documents()
@@ -18,12 +18,12 @@ use SignVault\Resources\Webhooks;
  * @method static Webhooks   webhooks()
  * @method static ApiKeys    apiKeys()
  *
- * @see \SignVault\SignVault
+ * @see \Signori\Signori
  */
-class SignVault extends Facade
+class Signori extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return \SignVault\SignVault::class;
+        return \Signori\Signori::class;
     }
 }
