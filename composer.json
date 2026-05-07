@@ -4,7 +4,7 @@
     "type": "library",
     "license": "MIT",
     "keywords": ["signori", "e-signature", "esign", "laravel", "pdf", "signing"],
-    "homepage": "https://github.com/signori/signori-sdk-laravel",
+    "homepage": "https://github.com/SignoriAI/signori-sdk-laravel",
     "authors": [
         {
             "name": "Signori",
@@ -45,7 +45,7 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/kmorganisation/signori-sdk-php"
+            "url": "https://github.com/SignoriAI/signori-sdk-php"
         }
     ],
     "config": {
