@@ -1,7 +1,7 @@
-# SignVault Laravel SDK
+# Signori Laravel SDK
 
-Official Laravel integration for the [SignVault](https://signvault.com) e-signature API.  
-Wraps [`signvault/signvault-php`](https://github.com/signvault/signvault-sdk-php) with a service provider, Facade, webhook controller, and signature middleware.
+Official Laravel integration for the [Signori](https://signori.ai) e-signature API.  
+Wraps [`signori/signori-php`](https://github.com/signori/signori-sdk-php) with a service provider, Facade, webhook controller, and signature middleware.
 
 ---
 
@@ -11,29 +11,29 @@ Wraps [`signvault/signvault-php`](https://github.com/signvault/signvault-sdk-php
 |---|---|
 | PHP | 8.1 |
 | Laravel | 10 or 11 |
-| signvault/signvault-php | ^1.0 |
+| signori/signori-php | ^1.0 |
 
 ---
 
 ## Installation
 
 ```bash
-composer require signvault/laravel-sdk
+composer require signori/laravel-sdk
 ```
 
-Laravel's package auto-discovery registers the service provider and `SignVault` alias automatically.
+Laravel's package auto-discovery registers the service provider and `Signori` alias automatically.
 
 Publish the config file:
 
 ```bash
-php artisan vendor:publish --tag=signvault-config
+php artisan vendor:publish --tag=signori-config
 ```
 
 Add your credentials to `.env`:
 
 ```env
-SIGNVAULT_API_KEY=sv_live_your_key_here
-SIGNVAULT_WEBHOOK_SECRET=your_webhook_secret_here
+SIGNORI_API_KEY=sv_live_your_key_here
+SIGNORI_WEBHOOK_SECRET=your_webhook_secret_here
 ```
 
 ---
@@ -43,16 +43,16 @@ SIGNVAULT_WEBHOOK_SECRET=your_webhook_secret_here
 ### Via dependency injection
 
 ```php
-use SignVault\SignVault;
+use Signori\Signori;
 
 class ContractService
 {
-    public function __construct(private readonly SignVault $signVault) {}
+    public function __construct(private readonly Signori $signori) {}
 
     public function sendForSigning(string $path, string $title, array $signers): string
     {
-        $doc = $this->signVault->documents->upload($path, $title);
-        $this->signVault->documents->send($doc->id, $signers);
+        $doc = $this->signori->documents->upload($path, $title);
+        $this->signori->documents->send($doc->id, $signers);
         return $doc->id;
     }
 }
@@ -61,9 +61,9 @@ class ContractService
 ### Via Facade
 
 ```php
-use SignVault\Laravel\Facades\SignVault;
+use Signori\Laravel\Facades\Signori;
 
-$client = SignVault::getFacadeRoot();   // returns the bound \SignVault\SignVault instance
+$client = Signori::getFacadeRoot();   // returns the bound \Signori\Signori instance
 
 $doc = $client->documents->upload(storage_path('app/contract.pdf'), 'NDA');
 
@@ -76,37 +76,37 @@ $client->documents->send($doc->id, [
 
 ```php
 // Upload
-$doc = $signVault->documents->upload('/path/to/file.pdf', 'Contract', 'contract');
+$doc = $signori->documents->upload('/path/to/file.pdf', 'Contract', 'contract');
 
 // List with filters
-$page = $signVault->documents->list(['status' => 'pending', 'limit' => 25]);
+$page = $signori->documents->list(['status' => 'pending', 'limit' => 25]);
 foreach ($page->items as $doc) {
     echo "{$doc->id} {$doc->title} {$doc->status}\n";
 }
 
 // Get single
-$doc = $signVault->documents->get('doc_abc123');
+$doc = $signori->documents->get('doc_abc123');
 
 // Send for signing
-$signVault->documents->send($doc->id, [
+$signori->documents->send($doc->id, [
     ['email' => 'alice@example.com', 'full_name' => 'Alice Smith', 'role' => 'signer'],
     ['email' => 'bob@example.com',   'full_name' => 'Bob Jones',   'role' => 'approver'],
 ], message: 'Please review and sign.', expiryDays: 14);
 
 // Download signed PDF
-$bytes = $signVault->documents->downloadSigned($doc->id);
+$bytes = $signori->documents->downloadSigned($doc->id);
 
 // Void
-$signVault->documents->void($doc->id, 'Sent to wrong recipient');
+$signori->documents->void($doc->id, 'Sent to wrong recipient');
 
 // Audit trail
-$audit = $signVault->documents->auditTrail($doc->id);
+$audit = $signori->documents->auditTrail($doc->id);
 ```
 
 ### Templates
 
 ```php
-$doc = $signVault->templates->createDocument(
+$doc = $signori->templates->createDocument(
     templateId: 'tpl_abc123',
     fieldValues: ['party_name' => 'Acme Corp', 'effective_date' => '2026-01-01'],
     signers: [['email' => 'ceo@acme.com', 'full_name' => 'Jane CEO']],
@@ -117,14 +117,14 @@ $doc = $signVault->templates->createDocument(
 
 ```php
 // API Keys
-$key  = $signVault->apiKeys->create('CI deploy key');
-$page = $signVault->apiKeys->list();
-$signVault->apiKeys->delete($key->id);
+$key  = $signori->apiKeys->create('CI deploy key');
+$page = $signori->apiKeys->list();
+$signori->apiKeys->delete($key->id);
 
 // Webhooks
-$hook = $signVault->webhooks->create('https://example.com/hooks/sv', ['document.completed']);
-$signVault->webhooks->update($hook->id, ['is_active' => false]);
-$signVault->webhooks->delete($hook->id);
+$hook = $signori->webhooks->create('https://example.com/hooks/sv', ['document.completed']);
+$signori->webhooks->update($hook->id, ['is_active' => false]);
+$signori->webhooks->delete($hook->id);
 ```
 
 ---
@@ -137,30 +137,30 @@ Register a route and exclude it from CSRF:
 
 ```php
 // routes/api.php (already CSRF-exempt) or routes/web.php
-Route::post('/webhooks/signvault', \SignVault\Laravel\Http\Controllers\WebhookController::class);
+Route::post('/webhooks/signori', \Signori\Laravel\Http\Controllers\WebhookController::class);
 ```
 
 If using `routes/web.php`, add the path to `VerifyCsrfToken::$except`.
 
 The controller:
-1. Verifies the HMAC-SHA256 signature against `SIGNVAULT_WEBHOOK_SECRET` (skips if secret is empty).
-2. Fires `SignVault\Laravel\Events\WebhookReceived` on success.
+1. Verifies the HMAC-SHA256 signature against `SIGNORI_WEBHOOK_SECRET` (skips if secret is empty).
+2. Fires `Signori\Laravel\Events\WebhookReceived` on success.
 
 Listen for the event:
 
 ```php
 // EventServiceProvider
-use SignVault\Laravel\Events\WebhookReceived;
+use Signori\Laravel\Events\WebhookReceived;
 
 protected $listen = [
     WebhookReceived::class => [
-        App\Listeners\HandleSignVaultWebhook::class,
+        App\Listeners\HandleSignoriWebhook::class,
     ],
 ];
 ```
 
 ```php
-// App\Listeners\HandleSignVaultWebhook
+// App\Listeners\HandleSignoriWebhook
 public function handle(WebhookReceived $event): void
 {
     match ($event->event) {
@@ -174,20 +174,20 @@ public function handle(WebhookReceived $event): void
 ### Option B — Middleware on your own handler
 
 ```php
-Route::post('/webhooks/signvault', MyWebhookHandler::class)
-    ->middleware(\SignVault\Laravel\Http\Middleware\VerifyWebhookSignature::class)
+Route::post('/webhooks/signori', MyWebhookHandler::class)
+    ->middleware(\Signori\Laravel\Http\Middleware\VerifyWebhookSignature::class)
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 ```
 
 ### Manual verification
 
 ```php
-use SignVault\Resources\Webhooks;
+use Signori\Resources\Webhooks;
 
 $payload   = $request->getContent();
-$signature = $request->header('X-SignVault-Signature', '');
+$signature = $request->header('X-Signori-Signature', '');
 
-if (! Webhooks::verify($payload, $signature, config('signvault.webhook_secret'))) {
+if (! Webhooks::verify($payload, $signature, config('signori.webhook_secret'))) {
     abort(403);
 }
 
@@ -201,14 +201,14 @@ $event = Webhooks::constructEvent($payload);
 ## Error handling
 
 ```php
-use SignVault\Exceptions\AuthException;
-use SignVault\Exceptions\NotFoundException;
-use SignVault\Exceptions\ValidationException;
-use SignVault\Exceptions\RateLimitException;
-use SignVault\Exceptions\ApiException;
+use Signori\Exceptions\AuthException;
+use Signori\Exceptions\NotFoundException;
+use Signori\Exceptions\ValidationException;
+use Signori\Exceptions\RateLimitException;
+use Signori\Exceptions\ApiException;
 
 try {
-    $doc = $signVault->documents->get('doc_xyz');
+    $doc = $signori->documents->get('doc_xyz');
 } catch (NotFoundException $e) {
     abort(404, $e->getMessage());
 } catch (AuthException) {
@@ -229,11 +229,11 @@ try {
 
 | Key | Env var | Default | Description |
 |---|---|---|---|
-| `api_key` | `SIGNVAULT_API_KEY` | — | Bearer token (required) |
-| `base_url` | `SIGNVAULT_BASE_URL` | `https://api.signvault.com` | Override for staging |
-| `timeout` | `SIGNVAULT_TIMEOUT` | `30` | Request timeout in seconds |
-| `max_retries` | `SIGNVAULT_MAX_RETRIES` | `1` | Retries on 429 / 5xx |
-| `webhook_secret` | `SIGNVAULT_WEBHOOK_SECRET` | — | Webhook signing secret |
+| `api_key` | `SIGNORI_API_KEY` | — | Bearer token (required) |
+| `base_url` | `SIGNORI_BASE_URL` | `https://api.signori.ai` | Override for staging |
+| `timeout` | `SIGNORI_TIMEOUT` | `30` | Request timeout in seconds |
+| `max_retries` | `SIGNORI_MAX_RETRIES` | `1` | Retries on 429 / 5xx |
+| `webhook_secret` | `SIGNORI_WEBHOOK_SECRET` | — | Webhook signing secret |
 
 ---
 
@@ -241,16 +241,16 @@ try {
 
 ```bash
 composer test           # All tests (unit)
-composer test:integration  # Integration (requires real SIGNVAULT_API_KEY)
+composer test:integration  # Integration (requires real SIGNORI_API_KEY)
 ```
 
 In your own test suite, bind a mock before resolution:
 
 ```php
-$this->app->instance(\SignVault\SignVault::class, $mockClient);
+$this->app->instance(\Signori\Signori::class, $mockClient);
 ```
 
-Or use `orchestra/testbench` with `SignVaultServiceProvider` and override config in `defineEnvironment`.
+Or use `orchestra/testbench` with `SignoriServiceProvider` and override config in `defineEnvironment`.
 
 ---
 

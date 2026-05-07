@@ -4,25 +4,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | SignVault API Key
+    | Signori API Key
     |--------------------------------------------------------------------------
     |
-    | Your SignVault bearer token. Keep it in .env as SIGNVAULT_API_KEY.
+    | Your Signori bearer token. Keep it in .env as SIGNORI_API_KEY.
     | Never commit the raw key to version control.
     |
     */
-    'api_key' => env('SIGNVAULT_API_KEY'),
+    'api_key' => env('SIGNORI_API_KEY'),
 
     /*
     |--------------------------------------------------------------------------
     | API Base URL
     |--------------------------------------------------------------------------
     |
-    | Override to point at a staging or self-hosted SignVault instance.
-    | Defaults to https://api.signvault.com when not set.
+    | Override to point at a staging or self-hosted Signori instance.
+    | Defaults to https://api.signori.ai when not set.
     |
     */
-    'base_url' => env('SIGNVAULT_BASE_URL'),
+    'base_url' => env('SIGNORI_BASE_URL'),
 
     /*
     |--------------------------------------------------------------------------
@@ -33,7 +33,7 @@ return [
     | higher value depending on document size.
     |
     */
-    'timeout' => env('SIGNVAULT_TIMEOUT', 30),
+    'timeout' => env('SIGNORI_TIMEOUT', 30),
 
     /*
     |--------------------------------------------------------------------------
@@ -44,7 +44,7 @@ return [
     | surfacing the exception to your application.
     |
     */
-    'max_retries' => env('SIGNVAULT_MAX_RETRIES', 1),
+    'max_retries' => env('SIGNORI_MAX_RETRIES', 1),
 
     /*
     |--------------------------------------------------------------------------
@@ -52,9 +52,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Signing secret used to verify incoming webhook payloads. Set this in
-    | .env and pass it to SignVault::webhooks()->verify() / the helper.
+    | .env and pass it to Signori::webhooks()->verify() / the helper.
     |
     */
-    'webhook_secret' => env('SIGNVAULT_WEBHOOK_SECRET'),
+    'webhook_secret' => env('SIGNORI_WEBHOOK_SECRET'),
 
 ];
