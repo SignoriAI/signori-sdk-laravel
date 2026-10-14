@@ -2,6 +2,11 @@
 
 All notable changes to the Signori Laravel SDK.
 
+## [Unreleased]
+
+### Breaking
+- `signori.base_url` / `SIGNORI_BASE_URL` is required. Resolving the client without it throws `Signori\Exceptions\SignoriException` instead of falling back to `https://api.signori.ai`.
+
 ## [1.0.0] — 2026-04-23
 
 Initial release.

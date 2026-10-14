@@ -18,8 +18,9 @@ return [
     | API Base URL
     |--------------------------------------------------------------------------
     |
-    | Override to point at a staging or self-hosted Signori instance.
-    | Defaults to https://api.signori.ai when not set.
+    | Base URL of the Signori instance to call, e.g. https://signori.internal.
+    | Required: there is no default, and resolving the client without it
+    | throws a SignoriException.
     |
     */
     'base_url' => env('SIGNORI_BASE_URL'),

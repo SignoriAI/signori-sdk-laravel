@@ -33,6 +33,7 @@ Add your credentials to `.env`:
 
 ```env
 SIGNORI_API_KEY=sv_live_your_key_here
+SIGNORI_BASE_URL=https://signori.your-company.example   # required, no default
 SIGNORI_WEBHOOK_SECRET=your_webhook_secret_here
 ```
 
@@ -122,7 +123,7 @@ $page = $signori->apiKeys->list();
 $signori->apiKeys->delete($key->id);
 
 // Webhooks
-$hook = $signori->webhooks->create('https://example.com/hooks/sv', ['document.completed']);
+$hook = $signori->webhooks->create('https://example.com/hooks/sv', ['document.completed'], config('signori.webhook_secret'));
 $signori->webhooks->update($hook->id, ['is_active' => false]);
 $signori->webhooks->delete($hook->id);
 ```
@@ -230,7 +231,7 @@ try {
 | Key | Env var | Default | Description |
 |---|---|---|---|
 | `api_key` | `SIGNORI_API_KEY` | — | Bearer token (required) |
-| `base_url` | `SIGNORI_BASE_URL` | `https://api.signori.ai` | Override for staging |
+| `base_url` | `SIGNORI_BASE_URL` | — | Signori instance base URL (required) |
 | `timeout` | `SIGNORI_TIMEOUT` | `30` | Request timeout in seconds |
 | `max_retries` | `SIGNORI_MAX_RETRIES` | `1` | Retries on 429 / 5xx |
 | `webhook_secret` | `SIGNORI_WEBHOOK_SECRET` | — | Webhook signing secret |
