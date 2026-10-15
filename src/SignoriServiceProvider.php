@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Signori\Laravel;
 
 use Illuminate\Support\ServiceProvider;
+use Signori\Exceptions\SignoriException;
 use Signori\Signori;
 
 class SignoriServiceProvider extends ServiceProvider
@@ -14,11 +15,19 @@ class SignoriServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/signori.php', 'signori');
 
         $this->app->singleton(Signori::class, function ($app) {
-            $config = $app['config']['signori'];
+            $config  = $app['config']['signori'];
+            $baseUrl = trim((string) ($config['base_url'] ?? ''));
+
+            // Guarded here too: SDK releases before NEX-5674 fall back to a SaaS URL.
+            if ($baseUrl === '') {
+                throw new SignoriException(
+                    'Signori base URL is not configured. Set SIGNORI_BASE_URL (config: signori.base_url).',
+                );
+            }
 
             return Signori::client(
                 apiKey:     $config['api_key'] ?? null,
-                baseUrl:    $config['base_url'] ?? null,
+                baseUrl:    $baseUrl,
                 timeout:    (int) ($config['timeout'] ?? 30),
                 maxRetries: (int) ($config['max_retries'] ?? 1),
             );

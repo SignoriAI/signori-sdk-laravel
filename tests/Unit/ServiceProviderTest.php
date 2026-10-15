@@ -42,6 +42,35 @@ class ServiceProviderTest extends TestCase
         $this->assertArrayHasKey('webhook_secret', $config);
     }
 
+    public function test_missing_base_url_throws(): void
+    {
+        $this->app['config']->set('signori.base_url', null);
+        $this->app->forgetInstance(Signori::class);
+
+        $this->expectException(\Signori\Exceptions\SignoriException::class);
+        $this->expectExceptionMessage('SIGNORI_BASE_URL');
+
+        $this->app->make(Signori::class);
+    }
+
+    public function test_blank_base_url_throws(): void
+    {
+        $this->app['config']->set('signori.base_url', '   ');
+        $this->app->forgetInstance(Signori::class);
+
+        $this->expectException(\Signori\Exceptions\SignoriException::class);
+        $this->expectExceptionMessage('SIGNORI_BASE_URL');
+
+        $this->app->make(Signori::class);
+    }
+
+    public function test_config_has_no_default_base_url(): void
+    {
+        $config = require __DIR__ . '/../../config/signori.php';
+
+        $this->assertNull($config['base_url']);
+    }
+
     public function test_missing_api_key_throws(): void
     {
         $this->expectException(\Signori\Exceptions\SignoriException::class);
